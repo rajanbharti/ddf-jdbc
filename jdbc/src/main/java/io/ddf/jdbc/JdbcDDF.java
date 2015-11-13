@@ -40,6 +40,7 @@ public class JdbcDDF extends DDF {
     return lowerCaseColNames;
   }
 
+  /*
   @Override public String getTableName() {
     if (this.getIsDDFView()) {
       return "(" + super.getTableName() + ") " + TableNameGenerator.genTableName(8);
@@ -48,4 +49,5 @@ public class JdbcDDF extends DDF {
     }
 
   }
+  */
 }
