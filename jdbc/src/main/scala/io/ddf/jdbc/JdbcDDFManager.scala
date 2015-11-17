@@ -204,6 +204,7 @@ class JdbcDDFManager(dataSourceDescriptor: DataSourceDescriptor,
     catalog.getTableSchema(getConnection(), null, tableName)
   }
 
+
   def showDatabases(): java.util.List[String] = {
     catalog.showDatabases(getConnection())
   }
@@ -228,4 +229,9 @@ class JdbcDDFManager(dataSourceDescriptor: DataSourceDescriptor,
   def disconnect() = {
     connectionPool.shutdown()
   }
+
+  def newDDFFromTable(tblname: String, tgtname: String): DDF = {
+    this.newDDF(this, null, null, null, tgtname, this.getTableSchema(tblname))
+  }
+
 }

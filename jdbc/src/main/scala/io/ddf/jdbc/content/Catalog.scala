@@ -58,7 +58,7 @@ object SimpleCatalog extends Catalog {
     tableName: String): util.List[Column] = {
     val columns: util.List[Column] = new util.ArrayList[Column]
     val metadata: DatabaseMetaData = connection.getMetaData
-    val resultSet: ResultSet = metadata.getColumns(null, schemaName, tableName.toUpperCase, null)
+    val resultSet: ResultSet = metadata.getColumns(null, schemaName, tableName, null)
     while (resultSet.next) {
       val columnName = resultSet.getString(4)
       var columnType = resultSet.getInt(5)
