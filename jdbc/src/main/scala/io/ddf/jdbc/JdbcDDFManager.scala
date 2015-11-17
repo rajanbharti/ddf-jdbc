@@ -85,6 +85,7 @@ class JdbcDDFManager(dataSourceDescriptor: DataSourceDescriptor,
 
     // check for valid jdbc login information
     // in case of sfdc
+   /*
     val conn = pool.getConnection
     val try_connect = Try(conn.createStatement().execute("SELECT 1"))
     try_connect match {
@@ -98,7 +99,7 @@ class JdbcDDFManager(dataSourceDescriptor: DataSourceDescriptor,
     }
 
     conn.close()
-
+    */
     pool
   }
 
