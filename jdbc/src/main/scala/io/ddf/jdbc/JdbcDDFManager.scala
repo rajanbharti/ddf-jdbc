@@ -231,7 +231,11 @@ class JdbcDDFManager(dataSourceDescriptor: DataSourceDescriptor,
   }
 
   def newDDFFromTable(tblname: String, tgtname: String): DDF = {
-    this.newDDF(this, null, null, null, tgtname, this.getTableSchema(tblname))
+    val schema = this.getTableSchema(tblname)
+    if (schema == null) {
+      throw new DDFException("schema is null in jdbc")
+    }
+    this.newDDF(this, null, null, "adatao", tgtname, this.getTableSchema(tblname))
   }
 
 }
