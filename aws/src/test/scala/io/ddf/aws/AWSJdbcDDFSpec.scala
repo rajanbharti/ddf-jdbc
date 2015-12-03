@@ -7,9 +7,9 @@ import io.ddf.jdbc.content.ContentBehaviors
 import io.ddf.jdbc.etl.ETLBehaviors
 import io.ddf.jdbc.{EngineDescriptor, JdbcDDFManager, Loader}
 import io.ddf.{DDF, DDFManager}
-import org.scalatest.FlatSpec
+import org.scalatest.{Ignore, FlatSpec}
 
-class AWSJdbcDDFSpec extends FlatSpec with AnalyticsBehaviors with ContentBehaviors with ETLBehaviors with MLBehaviors {
+class AWSJdbcDDFSpec(ignore: String) extends FlatSpec with AnalyticsBehaviors with ContentBehaviors with ETLBehaviors with MLBehaviors {
   implicit val loader = AWSLoader
 
   it should behave like ddfWithAddressing

@@ -45,3 +45,4 @@ R.Rproj
 
 # python stuffs
 *.pyc
+*/surefire-reports

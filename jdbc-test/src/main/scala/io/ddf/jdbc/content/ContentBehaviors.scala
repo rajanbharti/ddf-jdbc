@@ -61,7 +61,7 @@ trait ContentBehaviors extends BaseBehaviors {
 
     }
 
-    it should "persist and unpersist a jdbc DDF" in {
+    ignore should "persist and unpersist a jdbc DDF" in {
       val manager: DDFManager = DDFManager.get(l.engine,l.jdbcDDFManager.getDataSourceDescriptor)
       val ddf: DDF = manager.newDDF
       val uri: PersistenceUri = ddf.persist
