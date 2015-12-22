@@ -5,7 +5,7 @@ import sbt.Classpaths.publishTask
 object Common {
   lazy val rootOrganization = "io"
   lazy val rootProjectName = "ddf"
-  lazy val ddfVersion = "1.4.7-SNAPSHOT"
+  lazy val ddfVersion = "1.4.7"
   lazy val theScalaVersion = "2.10.4"
   lazy val MavenCompile = config("m2r") extend(Compile)
   lazy val publishLocalBoth = TaskKey[Unit]("publish-local", "publish local for m2 and ivy")
