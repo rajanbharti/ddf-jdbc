@@ -12,8 +12,8 @@ import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
 import io.ddf.DDFManager.EngineType
 import io.ddf.content.Schema
 import io.ddf.content.Schema.Column
-import io.ddf.datasource.{DataSourceDescriptor, JDBCDataSourceCredentials}
-import io.ddf.ds.{User, UserRegistry, UsernamePasswordCredential}
+import io.ddf.datasource.{DataSourceURI, SQLDataSourceDescriptor, DataSourceDescriptor, JDBCDataSourceCredentials}
+import io.ddf.ds.{User, UsernamePasswordCredential}
 import io.ddf.exception.{DDFException, UnauthenticatedDataSourceException}
 import io.ddf.jdbc.content._
 import io.ddf.jdbc.etl.SqlHandler
@@ -104,7 +104,6 @@ class JdbcDDFManager(dataSourceDescriptor: DataSourceDescriptor,
 
   def getConnectionPoolConfig: HikariConfig = {
     val config = if (dataSourceDescriptor == null) poolConfigFromUri else poolConfigFromDataSourceDescriptor
-    config.setPoolName(getUUID.toString)
     config.setRegisterMbeans(true)
 
     // We want to retire the connection as soon as possible
@@ -137,7 +136,7 @@ class JdbcDDFManager(dataSourceDescriptor: DataSourceDescriptor,
       // credential is attached to DDFManager
       connectionPool.getConnection
     } else {
-      val user = UserRegistry.getCurrentUser
+      val user = User.getCurrentUser
       val credential = Option(user.getCredential(uri))
       credential match {
         case Some(credential: UsernamePasswordCredential) =>
@@ -271,7 +270,7 @@ class JdbcDDFManager(dataSourceDescriptor: DataSourceDescriptor,
     connectionPool.shutdown()
   }
 
-  override def createDDF(user: User, options: util.Map[AnyRef, AnyRef]): DDF = {
+  override def createDDF(options: util.Map[AnyRef, AnyRef]): DDF = {
     val query = if (options.containsKey("query")) {
       options.get("query").toString
     } else if (options.containsKey("table")) {
@@ -280,6 +279,8 @@ class JdbcDDFManager(dataSourceDescriptor: DataSourceDescriptor,
     } else {
       throw new DDFException("Required either 'table' or 'query' option")
     }
-    sql2ddf(query)
+    val dummySource = new SQLDataSourceDescriptor(new DataSourceURI(uri), null, null, null)
+    dummySource.setDataSource("jdbc")
+    sql2ddf(query, dummySource)
   }
 }
