@@ -279,6 +279,7 @@ class JdbcDDFManager(dataSourceDescriptor: DataSourceDescriptor,
     } else {
       throw new DDFException("Required either 'table' or 'query' option")
     }
+    // FIXME: workaround
     val dummySource = new SQLDataSourceDescriptor(new DataSourceURI(uri), null, null, null)
     dummySource.setDataSource("jdbc")
     sql2ddf(query, dummySource)
