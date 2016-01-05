@@ -32,8 +32,8 @@ class ViewHandler(ddf: DDF) extends io.ddf.content.ViewHandler(ddf) {
     }
     }
     val newddf: DDF = this.project(result)
-    newddf.getMetaDataHandler.copyFactor(this.getDDF)
-    newddf
+    this.getDDF.updateInplace(newddf)
+    this.getDDF
   }
 
   override def getRandomSampleByNum(numSamples: Int, withReplaement: Boolean,

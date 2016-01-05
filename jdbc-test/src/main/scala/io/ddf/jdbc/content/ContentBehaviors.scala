@@ -211,16 +211,23 @@ trait ContentBehaviors extends BaseBehaviors {
     it should "project after remove columns " in {
       val ddf = airlineDDF
       val columns: java.util.List[String] = new java.util.ArrayList()
-      columns.add("year")
-      columns.add("month")
-      columns.add("deptime")
+      columns.add("newYear")
+      columns.add("newMonth")
+      columns.add("newDeptime")
 
-      val newddf1: DDF = ddf.VIEWS.removeColumn("year")
-      val newddf2: DDF = ddf.VIEWS.removeColumns("year", "deptime")
-      val newddf3: DDF = ddf.VIEWS.removeColumns(columns)
-      newddf1.getNumColumns should be(28)
-      newddf2.getNumColumns should be(27)
-      newddf3.getNumColumns should be(26)
+      val transformList = new util.ArrayList[String]()
+      transformList.add("newYear=year")
+      transformList.add("newMonth=month")
+      transformList.add("newDeptime=deptime")
+      val transformDDF = ddf.transform(transformList)
+      transformDDF.getNumColumns should be (32)
+
+      val newddf1: DDF = transformDDF.VIEWS.removeColumn("newYear")
+      newddf1.getNumColumns should be(31)
+      val newddf2: DDF = transformDDF.VIEWS.removeColumns("newYear", "newDeptime")
+      newddf2.getNumColumns should be(30)
+      val newddf3: DDF = transformDDF.VIEWS.removeColumns(columns)
+      newddf3.getNumColumns should be(29)
     }
   }
 }
