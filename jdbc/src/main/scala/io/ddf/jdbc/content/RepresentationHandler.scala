@@ -33,7 +33,7 @@ object Representations {
     override def apply(representation: Representation): Representation = {
       val view = representation.getValue.asInstanceOf[TableNameRepresentation]
       //Override where required
-      val sqlArrayResult = SqlArrayResultCommand(ddfManager.getConnection(), ddfManager.baseSchema, ddf.getName, String.format("SELECT * FROM %s", view.viewName))
+      val sqlArrayResult = SqlArrayResultCommand(ddfManager.getConnection, ddfManager.baseSchema, ddf.getName, String.format("SELECT * FROM %s", view.viewName))
       new Representation(new SqlArrayResult(view.schema, sqlArrayResult.result), SQL_ARRAY_RESULT)
     }
   }
