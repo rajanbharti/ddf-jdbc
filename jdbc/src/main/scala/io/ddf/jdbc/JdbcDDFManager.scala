@@ -35,7 +35,7 @@ class JdbcDDFManager(dataSourceDescriptor: DataSourceDescriptor,
   val canCreateView = "yes".equalsIgnoreCase(Config.getValue(getEngine, "canCreateView"))
   val driverClassName = Config.getValue(getEngine, "jdbcDriverClass")
   Class.forName(driverClassName)
-  // TODO: fix addRTK()
+  addRTK()
   lazy val connectionPool = initializeConnectionPool(getConnectionPoolConfig)
 
   def this(dataSourceDescriptor: DataSourceDescriptor, engineType: EngineType) {
@@ -51,14 +51,15 @@ class JdbcDDFManager(dataSourceDescriptor: DataSourceDescriptor,
   def catalog: Catalog = SimpleCatalog
 
   def addRTK(): Unit = {
-    var jdbcUrl = dataSourceDescriptor.getDataSourceUri.getUri.toString
-
-    if (this.getEngineType.name().equalsIgnoreCase("sfdc")) {
-      val rtkString = System.getenv("SFDC_RTK")
-      if (rtkString != null) {
-        jdbcUrl += "RTK='" + rtkString + "';"
+    if (dataSourceDescriptor != null) {
+      var jdbcUrl = dataSourceDescriptor.getDataSourceUri.getUri.toString
+      if (this.getEngineType.name().equalsIgnoreCase("sfdc")) {
+        val rtkString = System.getenv("SFDC_RTK")
+        if (rtkString != null) {
+          jdbcUrl += "RTK='" + rtkString + "';"
+        }
+        this.getDataSourceDescriptor.getDataSourceUri.setUri(new URI(jdbcUrl))
       }
-      this.getDataSourceDescriptor.getDataSourceUri.setUri(new URI(jdbcUrl))
     }
   }
 
