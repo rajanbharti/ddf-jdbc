@@ -76,6 +76,7 @@ lazy val postgres = project.in(file("postgres")).dependsOn(jdbc,jdbcTest % "test
   name := "ddf-jdbc-postgres",
   pomExtra := submodulePom,
   libraryDependencies ++= Seq(
+    "org.scalatest" %% "scalatest" % "3.0.0-M7" % "test",
     "postgresql" % "postgresql" % "9.1-901-1.jdbc4"
   )
 )
