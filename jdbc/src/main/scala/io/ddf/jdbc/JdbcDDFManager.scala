@@ -285,4 +285,6 @@ class JdbcDDFManager(dataSourceDescriptor: DataSourceDescriptor,
     dummySource.setDataSource("jdbc")
     sql2ddf(query, dummySource)
   }
+
+  override def getSourceUri: String = uri
 }
