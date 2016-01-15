@@ -55,7 +55,8 @@ lazy val jdbc = project.in(file("jdbc")).settings(commonSettings: _*).settings(j
     "org.scalikejdbc" %% "scalikejdbc" % "2.2.7",
     "com.univocity" % "univocity-parsers" % "1.5.5",
     "com.clearspring.analytics" % "stream" % "2.7.0" exclude("asm", "asm")
-  )
+  ),
+  dependencyOverrides += "org.codehaus.jackson" % "jackson-core-asl" % "1.8.8"
 )
 
 lazy val jdbcExamples = project.in(file("jdbc-examples")).dependsOn(jdbc).settings(commonSettings: _*).settings(jdbcAssemblySettings:_*).settings(
@@ -89,6 +90,7 @@ lazy val aws = project.in(file("aws")).dependsOn(jdbc,postgres,jdbcTest % "test-
 )
 
 resolvers ++= Seq("Adatao Mvnrepos Snapshots" at "https://raw.github.com/adatao/mvnrepos/master/snapshots",
-  "Adatao Mvnrepos Releases" at "https://raw.github.com/adatao/mvnrepos/master/releases")
+  "Adatao Mvnrepos Releases" at "https://raw.github.com/adatao/mvnrepos/master/releases", 
+  "Local Maven Repository" at "file://"+Path.userHome.absolutePath+"/.m2/repository")
 
 publishMavenStyle := true
