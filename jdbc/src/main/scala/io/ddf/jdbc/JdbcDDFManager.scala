@@ -5,16 +5,13 @@ import java.net.URI
 import java.sql.Connection
 import java.util
 import java.util.UUID
-import javax.sql.{DataSource => SQLDataSource}
 
-import com.google.common.cache.{CacheBuilder, CacheLoader}
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
 import io.ddf.DDFManager.EngineType
 import io.ddf.content.Schema
 import io.ddf.content.Schema.Column
-import io.ddf.datasource.{DataSourceURI, SQLDataSourceDescriptor, DataSourceDescriptor, JDBCDataSourceCredentials}
-import io.ddf.ds.{User, UsernamePasswordCredential}
-import io.ddf.exception.{DDFException, UnauthenticatedDataSourceException}
+import io.ddf.datasource.{DataSourceDescriptor, DataSourceURI, JDBCDataSourceCredentials, SQLDataSourceDescriptor}
+import io.ddf.exception.DDFException
 import io.ddf.jdbc.content._
 import io.ddf.jdbc.etl.SqlHandler
 import io.ddf.jdbc.utils.Utils
@@ -123,30 +120,8 @@ class JdbcDDFManager(dataSourceDescriptor: DataSourceDescriptor,
     config
   }
 
-  val poolCache = CacheBuilder.newBuilder().build(new CacheLoader[UsernamePasswordCredential, SQLDataSource] {
-    override def load(key: UsernamePasswordCredential): SQLDataSource = {
-      val config = getConnectionPoolConfig
-      config.setUsername(key.getUsername)
-      config.setPassword(key.getPassword)
-      initializeConnectionPool(config)
-    }
-  })
-
   def getConnection: Connection = {
-    if (dataSourceDescriptor != null) {
-      // credential is attached to DDFManager
-      connectionPool.getConnection
-    } else {
-      val user = User.getCurrentUser
-      val credential = Option(user.getCredential(uri))
-      credential match {
-        case Some(credential: UsernamePasswordCredential) =>
-          val pool = poolCache.get(credential)
-          pool.getConnection
-        case _ =>
-          throw new UnauthenticatedDataSourceException()
-      }
-    }
+    connectionPool.getConnection
   }
 
   def getCanCreateView: Boolean = {
