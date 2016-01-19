@@ -51,7 +51,7 @@ class MLSupporter(ddf: DDF) extends ADDFFunctionalGroupHandler(ddf) with ISuppor
     val manifestPath = awsHelper.createResultsManifestForRedshift(batchId)
     val sqlToCopy = awsHelper.sqlToCopyFromS3ToRedshift(manifestPath, newTableName)
     implicit val cat = ddfManager.catalog
-    DdlCommand(ddfManager.getConnection, ddfManager.baseSchema, sqlToCopy)
+    DdlCommand(ddfManager.getConnection(), ddfManager.baseSchema, sqlToCopy)
     //and return the ddf
     newDDF
   }

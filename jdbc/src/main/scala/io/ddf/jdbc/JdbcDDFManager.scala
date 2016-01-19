@@ -120,18 +120,18 @@ class JdbcDDFManager(dataSourceDescriptor: DataSourceDescriptor,
     config
   }
 
-  def getConnection: Connection = {
+  def getConnection(): Connection = {
     connectionPool.getConnection
   }
 
-  def getCanCreateView: Boolean = {
+  def getCanCreateView(): Boolean = {
     canCreateView
   }
 
   def drop(command: String) = {
     checkSinkAllowed()
     implicit val cat = catalog
-    DdlCommand(getConnection, baseSchema, command)
+    DdlCommand(getConnection(), baseSchema, command)
   }
 
   def create(command: String) = {
@@ -148,7 +148,7 @@ class JdbcDDFManager(dataSourceDescriptor: DataSourceDescriptor,
     val ddf = getDDFByName(l.tableName)
     val schema = ddf.getSchema
     implicit val cat = catalog
-    LoadCommand(getConnection, baseSchema, schema, l)
+    LoadCommand(getConnection(), baseSchema, schema, l)
     ddf
   }
 
@@ -163,7 +163,7 @@ class JdbcDDFManager(dataSourceDescriptor: DataSourceDescriptor,
     val schema = new Schema(tableName, colInfo)
     val createCommand = SchemaToCreate(schema)
     val ddf = create(createCommand)
-    LoadCommand(getConnection, baseSchema, schema, load)
+    LoadCommand(getConnection(), baseSchema, schema, load)
     ddf
   }
 
@@ -210,36 +210,36 @@ class JdbcDDFManager(dataSourceDescriptor: DataSourceDescriptor,
 
 
   def showTables(schemaName: String): java.util.List[String] = {
-    catalog.showTables(getConnection, schemaName)
+    catalog.showTables(getConnection(), schemaName)
   }
 
   def showViews(schemaName: String): java.util.List[String] = {
-    catalog.showViews(getConnection, schemaName)
+    catalog.showViews(getConnection(), schemaName)
   }
 
   def getTableSchema(tableName: String) = {
-    catalog.getTableSchema(getConnection, null, tableName)
+    catalog.getTableSchema(getConnection(), null, tableName)
   }
 
   def showDatabases(): java.util.List[String] = {
-    catalog.showDatabases(getConnection)
+    catalog.showDatabases(getConnection())
   }
 
   def setDatabase(database: String): Unit = {
-    catalog.setDatabase(getConnection, database)
+    catalog.setDatabase(getConnection(), database)
   }
 
   def listColumnsForTable(schemaName: String,
                           tableName: String): util.List[Column] = {
-    this.catalog.listColumnsForTable(getConnection, schemaName, tableName);
+    this.catalog.listColumnsForTable(getConnection(), schemaName, tableName)
   }
 
   def showSchemas(): util.List[String] = {
-    this.catalog.showSchemas(getConnection)
+    this.catalog.showSchemas(getConnection())
   }
 
   def setSchema(schemaName: String): Unit = {
-    this.catalog.setSchema(getConnection, schemaName)
+    this.catalog.setSchema(getConnection(), schemaName)
   }
 
   def disconnect() = {
@@ -255,7 +255,7 @@ class JdbcDDFManager(dataSourceDescriptor: DataSourceDescriptor,
     } else {
       throw new DDFException("Required either 'table' or 'query' option")
     }
-    // FIXME: workaround
+    // XXX this is to minimise needed change but a new sql2ddf api maybe better
     val dummySource = new SQLDataSourceDescriptor(new DataSourceURI(uri), null, null, null)
     dummySource.setDataSource("jdbc")
     sql2ddf(query, dummySource)

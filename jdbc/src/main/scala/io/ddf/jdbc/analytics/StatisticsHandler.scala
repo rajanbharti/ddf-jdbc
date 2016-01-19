@@ -53,7 +53,7 @@ class StatisticsHandler(ddf: DDF) extends AStatisticsSupporter(ddf) {
       s"${this.getDDF.getTableName} "
     }
     sql = String.format("select %s from %s", sql, tableName)
-    val result = SqlArrayResultCommand(ddfManager.getConnection, ddfManager
+    val result = SqlArrayResultCommand(ddfManager.getConnection(), ddfManager
       .baseSchema, tableName, sql).result.get(0)
     var i: Int = 0
     numericColumns.foreach { column =>
@@ -129,7 +129,7 @@ class StatisticsHandler(ddf: DDF) extends AStatisticsSupporter(ddf) {
     var sql: String = StringUtils.join(sqlCommand, ", ")
     val tableName = this.getDDF.getTableName
     sql = String.format("select %s from %s", sql, tableName)
-    val result = SqlArrayResultCommand(ddfManager.getConnection, ddfManager
+    val result = SqlArrayResultCommand(ddfManager.getConnection(), ddfManager
       .baseSchema, tableName, sql).result.get(0)
     var i: Int = 0
     for (column <- numericColumns) {

@@ -37,8 +37,8 @@ class PostgresDDFManager(dataSourceDescriptor: DataSourceDescriptor,
   }
 
   override def showTables(schemaName: String): java.util.List[String] = {
-    val tables = catalog.showTables(getConnection, schemaName)
-    val views = catalog.showViews(getConnection, schemaName)
+    val tables = catalog.showTables(getConnection(), schemaName)
+    val views = catalog.showViews(getConnection(), schemaName)
     tables.removeAll(views)
     tables
   }
