@@ -46,7 +46,7 @@ class SchemaHandler(ddf: DDF) extends io.ddf.content.SchemaHandler(ddf: DDF) {
     //loop through all factors and compute factor
 
 
-    columnIndexes.par.foreach(colIndex => {
+    columnIndexes.foreach(colIndex => {
       val col = this.getColumn(this.getColumnName(colIndex))
 
       val quotedColName = "\"" + col.getName() + "\""
