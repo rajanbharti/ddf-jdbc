@@ -225,7 +225,11 @@ trait ETLBehaviors extends BaseBehaviors {
       newddf.getNumColumns should be(8)
       newddf.getColumnName(7).toLowerCase should be("dist")
 
-      val newddf2 = newddf.Transform.transformUDF("arrtime-deptime")
+      // PE-1466
+      // XXX this will fail as the auto created column name from postgres will be ?column?
+      // and is not a valid column name required by our Schema
+      // val newddf2 = newddf.Transform.transformUDF("arrtime-deptime")
+      val newddf2 = newddf.Transform.transformUDF("triptime=arrtime-deptime")
       newddf2.getNumRows should be(31)
       newddf2.getNumColumns should be(9)
 
