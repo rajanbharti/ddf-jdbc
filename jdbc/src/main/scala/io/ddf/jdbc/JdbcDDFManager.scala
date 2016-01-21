@@ -2,86 +2,68 @@ package io.ddf.jdbc
 
 
 import java.net.URI
-import java.sql.{Connection, DriverManager}
-import java.util.UUID
-import java.util.Properties
+import java.sql.Connection
 import java.util
+import java.util.UUID
 
-import com.zaxxer.hikari.{HikariDataSource, HikariConfig}
+import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
+import io.ddf.DDFManager.EngineType
 import io.ddf.content.Schema
 import io.ddf.content.Schema.Column
-import io.ddf.datasource.{DataSourceDescriptor, JDBCDataSourceCredentials}
+import io.ddf.datasource.{DataSourceDescriptor, DataSourceURI, JDBCDataSourceCredentials, SQLDataSourceDescriptor}
 import io.ddf.exception.DDFException
 import io.ddf.jdbc.content._
 import io.ddf.jdbc.etl.SqlHandler
 import io.ddf.jdbc.utils.Utils
 import io.ddf.misc.Config
 import io.ddf.{DDF, DDFManager}
-import io.ddf.DDFManager.EngineType
-import scalikejdbc.ConnectionPool
 
-import scala.util.{Success, Failure, Try}
+import scala.util.{Failure, Success, Try}
 
 class JdbcDDFManager(dataSourceDescriptor: DataSourceDescriptor,
-                     engineType: EngineType) extends DDFManager {
-
-  override def getEngine: String = engineType.name()
-  this.setEngineType(engineType)
-  this.setDataSourceDescriptor(dataSourceDescriptor)
-  def catalog: Catalog = SimpleCatalog
-
-  val driverClassName = Config.getValue(getEngine, "jdbcDriverClass")
-  Class.forName(driverClassName)
-  addRTK()
-  var connectionPool = initializeConnectionPool(getEngine)
-
-  val baseSchema = Config.getValue(getEngine, "workspaceSchema")
-  val canCreateView = "yes".equalsIgnoreCase(Config.getValue(getEngine, "canCreateView"))
+                     engineType: EngineType,
+                     uri: String)
+  extends DDFManager {
 
   setEngineType(engineType)
   setDataSourceDescriptor(dataSourceDescriptor)
 
+  val baseSchema = Config.getValue(getEngine, "workspaceSchema")
+  val canCreateView = "yes".equalsIgnoreCase(Config.getValue(getEngine, "canCreateView"))
+  val driverClassName = Config.getValue(getEngine, "jdbcDriverClass")
+  Class.forName(driverClassName)
+  addRTK()
+  lazy val connectionPool = initializeConnectionPool(getConnectionPoolConfig)
+
+  def this(dataSourceDescriptor: DataSourceDescriptor, engineType: EngineType) {
+    this(dataSourceDescriptor, engineType, null)
+  }
+
+  def this(engineType: EngineType, uri: String) {
+    this(null, engineType, uri)
+  }
+
+  override def getEngine: String = engineType.name()
+
+  def catalog: Catalog = SimpleCatalog
 
   def addRTK(): Unit = {
-    var jdbcUrl = dataSourceDescriptor.getDataSourceUri.getUri.toString
-
-    if (this.getEngineType.name().equalsIgnoreCase("sfdc")) {
-      val rtkString = System.getenv("SFDC_RTK")
-      if (rtkString != null) {
-        jdbcUrl += "RTK='" + rtkString + "';";
+    if (dataSourceDescriptor != null) {
+      var jdbcUrl = dataSourceDescriptor.getDataSourceUri.getUri.toString
+      if (this.getEngineType.name().equalsIgnoreCase("sfdc")) {
+        val rtkString = System.getenv("SFDC_RTK")
+        if (rtkString != null) {
+          jdbcUrl += "RTK='" + rtkString + "';"
+        }
+        this.getDataSourceDescriptor.getDataSourceUri.setUri(new URI(jdbcUrl))
       }
-      this.getDataSourceDescriptor.getDataSourceUri().setUri(new URI(jdbcUrl));
     }
   }
-  
+
   def isSinkAllowed = baseSchema != null
 
-
-  def initializeConnectionPool(engine: String): HikariDataSource = {
-    val jdbcUrl = dataSourceDescriptor.getDataSourceUri.getUri.toString
-    val credentials = dataSourceDescriptor.getDataSourceCredentials.asInstanceOf[JDBCDataSourceCredentials]
-    val jdbcUser = credentials.getUsername
-    val jdbcPassword = credentials.getPassword
-
-    val config:HikariConfig = new HikariConfig()
-    config.setJdbcUrl(jdbcUrl)
-    config.setUsername(jdbcUser)
-    config.setPassword(jdbcPassword)
-
-    // We want to retire the connection as soon as possible
-    config.setIdleTimeout(if (Config.getValue(getEngine, "jdbcPoolConnIdleTimeoutMs") == null) 10000 else Config.getValue(getEngine, "jdbcPoolConnIdleTimeoutMs").toLong)
-    config.setMaxLifetime(if (Config.getValue(getEngine, "jdbcPoolConnMaxLifetimeMs") == null) 20000 else Config.getValue(getEngine, "jdbcPoolConnMaxLifetimeMs").toLong)
-
-    config.setMinimumIdle(if (Config.getValue(getEngine, "jdbcPoolMinIdleConns") == null) 2 else Config.getValue(getEngine, "jdbcPoolMinIdleConns").toInt)
-    config.setMaximumPoolSize(if (Config.getValue(getEngine, "maxJDBCPoolSize") == null) 15 else Config.getValue(getEngine, "maxJDBCPoolSize").toInt)
-    config.setPoolName(getUUID.toString)
-    config.setRegisterMbeans(true)
-    val connectionTestQuery = Config.getValue(getEngine, "jdbcConnectionTestQuery")
-    if(connectionTestQuery!=null) config.setConnectionTestQuery(connectionTestQuery)
-    // This is for pushing prepared statements to Postgres server as in
-    // https://jdbc.postgresql.org/documentation/head/server-prepare.html
-    //config.addDataSourceProperty("prepareThreshold", 0)
-    val pool: HikariDataSource = new HikariDataSource(config)
+  def initializeConnectionPool(config: HikariConfig): HikariDataSource = {
+    val pool = new HikariDataSource(config)
 
     // check for valid jdbc login information
     // in case of sfdc
@@ -93,13 +75,49 @@ class JdbcDDFManager(dataSourceDescriptor: DataSourceDescriptor,
           pool.shutdown()
           throw ex
         }
-
       case Success(_) => // Can execute query, good!!!
     }
-
     conn.close()
 
     pool
+  }
+
+  def poolConfigFromDataSourceDescriptor: HikariConfig = {
+    val config: HikariConfig = new HikariConfig()
+    val jdbcUrl = dataSourceDescriptor.getDataSourceUri.getUri.toString
+    config.setJdbcUrl(jdbcUrl)
+
+    val credentials = dataSourceDescriptor.getDataSourceCredentials.asInstanceOf[JDBCDataSourceCredentials]
+    config.setUsername(credentials.getUsername)
+    config.setPassword(credentials.getPassword)
+
+    config
+  }
+
+  def poolConfigFromUri: HikariConfig = {
+    val config: HikariConfig = new HikariConfig()
+    config.setJdbcUrl(uri)
+    config
+  }
+
+  def getConnectionPoolConfig: HikariConfig = {
+    val config = if (dataSourceDescriptor == null) poolConfigFromUri else poolConfigFromDataSourceDescriptor
+    config.setRegisterMbeans(true)
+
+    // We want to retire the connection as soon as possible
+    val engine = getEngine
+    config.setIdleTimeout(Config.getValueOrElseDefault(engine, "jdbcPoolConnIdleTimeoutMs", "10000").toLong)
+    config.setIdleTimeout(Config.getValueOrElseDefault(engine, "jdbcPoolConnMaxLifetimeMs", "20000").toLong)
+    config.setIdleTimeout(Config.getValueOrElseDefault(engine, "jdbcPoolMinIdleConns", "2").toInt)
+    config.setIdleTimeout(Config.getValueOrElseDefault(engine, "maxJDBCPoolSize", "15").toInt)
+
+    val connectionTestQuery = Config.getValue(engine, "jdbcConnectionTestQuery")
+    if (connectionTestQuery != null) config.setConnectionTestQuery(connectionTestQuery)
+    // This is for pushing prepared statements to Postgres server as in
+    // https://jdbc.postgresql.org/documentation/head/server-prepare.html
+    //config.addDataSourceProperty("prepareThreshold", 0)
+
+    config
   }
 
   def getConnection(): Connection = {
@@ -184,7 +202,7 @@ class JdbcDDFManager(dataSourceDescriptor: DataSourceDescriptor,
     throw new DDFException("Load DDF from file is not supported!")
   }
 
-  override def transferByTable(fromEngine: UUID, tblName : String): DDF = {
+  override def transferByTable(fromEngine: UUID, tblName: String): DDF = {
     throw new DDFException("Load DDF from file is not supported!")
   }
 
@@ -207,13 +225,13 @@ class JdbcDDFManager(dataSourceDescriptor: DataSourceDescriptor,
     catalog.showDatabases(getConnection())
   }
 
-  def setDatabase(database: String) : Unit = {
+  def setDatabase(database: String): Unit = {
     catalog.setDatabase(getConnection(), database)
   }
 
   def listColumnsForTable(schemaName: String,
                           tableName: String): util.List[Column] = {
-    this.catalog.listColumnsForTable(getConnection(), schemaName, tableName);
+    this.catalog.listColumnsForTable(getConnection(), schemaName, tableName)
   }
 
   def showSchemas(): util.List[String] = {
@@ -227,4 +245,21 @@ class JdbcDDFManager(dataSourceDescriptor: DataSourceDescriptor,
   def disconnect() = {
     connectionPool.shutdown()
   }
+
+  override def createDDF(options: util.Map[AnyRef, AnyRef]): DDF = {
+    val query = if (options.containsKey("query")) {
+      options.get("query").toString
+    } else if (options.containsKey("table")) {
+      val table = options.get("table")
+      s"select * from $table"
+    } else {
+      throw new DDFException("Required either 'table' or 'query' option")
+    }
+    // XXX this is to minimise needed change but a new sql2ddf api maybe better
+    val dummySource = new SQLDataSourceDescriptor(new DataSourceURI(uri), null, null, null)
+    dummySource.setDataSource("jdbc")
+    sql2ddf(query, dummySource)
+  }
+
+  override def getSourceUri: String = uri
 }

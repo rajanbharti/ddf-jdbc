@@ -13,7 +13,19 @@ import io.ddf.jdbc.content.{Catalog, SqlArrayResultCommand}
 import io.ddf.jdbc.utils.Utils
 import scalikejdbc.{DB, SQL}
 
-class PostgresDDFManager(dataSourceDescriptor: DataSourceDescriptor, engineType: EngineType) extends JdbcDDFManager(dataSourceDescriptor, engineType) {
+class PostgresDDFManager(dataSourceDescriptor: DataSourceDescriptor,
+                         engineType: EngineType,
+                         uri: String)
+  extends JdbcDDFManager(dataSourceDescriptor, engineType, uri) {
+
+  def this(dataSourceDescriptor: DataSourceDescriptor, engineType: EngineType) {
+    this(dataSourceDescriptor, engineType, null)
+  }
+
+  def this(engineType: EngineType, uri: String) {
+    this(null, engineType, uri)
+  }
+
   override def getEngine = engineType.name()
 
   override def catalog = PostgresCatalog

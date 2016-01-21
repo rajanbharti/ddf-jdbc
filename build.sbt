@@ -53,7 +53,7 @@ lazy val jdbc = project.in(file("jdbc")).settings(commonSettings: _*).settings(j
   libraryDependencies ++= Seq(
     "com.zaxxer" % "HikariCP-java6" % "2.3.9",
     "org.scalikejdbc" %% "scalikejdbc" % "2.2.7",
-    "com.univocity" % "univocity-parsers" % "1.5.5",
+    "com.univocity" % "univocity-parsers" % "1.5.1",
     "com.clearspring.analytics" % "stream" % "2.7.0" exclude("asm", "asm")
   )
 )
@@ -76,6 +76,7 @@ lazy val postgres = project.in(file("postgres")).dependsOn(jdbc,jdbcTest % "test
   name := "ddf-jdbc-postgres",
   pomExtra := submodulePom,
   libraryDependencies ++= Seq(
+    "org.scalatest" %% "scalatest" % "3.0.0-M7" % "test",
     "postgresql" % "postgresql" % "9.1-901-1.jdbc4"
   )
 )
