@@ -2,7 +2,7 @@ package io.ddf.jdbc
 
 
 import java.net.URI
-import java.sql.Connection
+import java.sql.{Connection, SQLException, SQLFeatureNotSupportedException}
 import java.util
 import java.util.UUID
 
@@ -11,7 +11,8 @@ import io.ddf.DDFManager.EngineType
 import io.ddf.content.Schema
 import io.ddf.content.Schema.Column
 import io.ddf.datasource.{DataSourceDescriptor, DataSourceURI, JDBCDataSourceCredentials, SQLDataSourceDescriptor}
-import io.ddf.exception.DDFException
+import io.ddf.ds.DataSourceCredential
+import io.ddf.exception.{DDFException, InvalidDataSourceCredentialException}
 import io.ddf.jdbc.content._
 import io.ddf.jdbc.etl.SqlHandler
 import io.ddf.jdbc.utils.Utils
@@ -31,6 +32,8 @@ class JdbcDDFManager(dataSourceDescriptor: DataSourceDescriptor,
   val baseSchema = Config.getValue(getEngine, "workspaceSchema")
   val canCreateView = "yes".equalsIgnoreCase(Config.getValue(getEngine, "canCreateView"))
   val driverClassName = Config.getValue(getEngine, "jdbcDriverClass")
+  val connectionValidateTimeout = Config.getValueOrElseDefault(getEngine, "connectionValidateTimeout", "10").toInt
+
   Class.forName(driverClassName)
   addRTK()
   lazy val connectionPool = initializeConnectionPool(getConnectionPoolConfig)
@@ -107,9 +110,9 @@ class JdbcDDFManager(dataSourceDescriptor: DataSourceDescriptor,
     // We want to retire the connection as soon as possible
     val engine = getEngine
     config.setIdleTimeout(Config.getValueOrElseDefault(engine, "jdbcPoolConnIdleTimeoutMs", "10000").toLong)
-    config.setIdleTimeout(Config.getValueOrElseDefault(engine, "jdbcPoolConnMaxLifetimeMs", "20000").toLong)
-    config.setIdleTimeout(Config.getValueOrElseDefault(engine, "jdbcPoolMinIdleConns", "2").toInt)
-    config.setIdleTimeout(Config.getValueOrElseDefault(engine, "maxJDBCPoolSize", "15").toInt)
+    config.setMaxLifetime(Config.getValueOrElseDefault(engine, "jdbcPoolConnMaxLifetimeMs", "20000").toLong)
+    config.setMinimumIdle(Config.getValueOrElseDefault(engine, "jdbcPoolMinIdleConns", "2").toInt)
+    config.setMaximumPoolSize(Config.getValueOrElseDefault(engine, "maxJDBCPoolSize", "15").toInt)
 
     val connectionTestQuery = Config.getValue(engine, "jdbcConnectionTestQuery")
     if (connectionTestQuery != null) config.setConnectionTestQuery(connectionTestQuery)
@@ -262,4 +265,35 @@ class JdbcDDFManager(dataSourceDescriptor: DataSourceDescriptor,
   }
 
   override def getSourceUri: String = uri
+
+  override def validateCredential(credential: DataSourceCredential): Unit = {
+    // XXX this try finally block is too Java-ish
+    var conn: Connection = null
+    try {
+      conn = getConnection()
+      conn.isValid(connectionValidateTimeout)
+    } catch {
+      case e: SQLException =>
+        if (JdbcDDFManager.isInvalidCredentialError(e)) {
+          throw new InvalidDataSourceCredentialException(e.getMessage)
+        }
+      case e: SQLFeatureNotSupportedException =>
+        // not all driver support isValid method
+        // in this case we will accept that the credential is valid as we can get connection
+      case e => throw e
+    } finally {
+      if (conn != null) {
+        conn.close()
+      }
+    }
+  }
+}
+
+object JdbcDDFManager {
+  def isInvalidCredentialError(exception: SQLException): Boolean = {
+    val msg = exception.getMessage.toLowerCase
+    val accessDenied = msg.contains("access denied")
+    val authFailed = msg.contains("authentication failed")
+    accessDenied || authFailed
+  }
 }
